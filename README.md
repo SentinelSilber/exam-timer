@@ -1,6 +1,6 @@
 # Exam Timer
 
-A single-file rotation timer for lab exams where students move between hand samples or stations on a fixed interval. Open `exam-timer.html` in any modern browser. No install, no network, no dependencies.
+A single-file rotation timer for lab exams where students move between hand samples or stations on a fixed interval. Use it at <https://sentinelsilber.github.io/exam-timer/> or open `index.html` locally in any modern browser. No install, no network, no dependencies.
 
 ## Setup
 

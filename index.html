@@ -74,18 +74,18 @@
   /* ---------- run ---------- */
   #run { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none; }
   #run:not(.active) { cursor: none; }
-  #run .loop { font-size: clamp(16px, 2.6vw, 30px); color: var(--dim); letter-spacing: .02em; }
+  #run .loop { font-size: clamp(16px, 2.6vw, 30px); font-weight: 500; color: var(--dim); letter-spacing: .02em; }
   #run .loop.flash { animation: flash .7s ease-out; }
   @keyframes flash { 0% { color: var(--fg); } 100% { color: var(--dim); } }
   #run .time {
-    font-size: clamp(96px, 30vw, 44vh); line-height: 1; font-weight: 300;
-    font-variant-numeric: tabular-nums; letter-spacing: -0.02em; margin: 2vh 0 3vh;
+    font-size: clamp(96px, 30vw, 44vh); line-height: 1; font-weight: 500;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.01em; margin: 2vh 0 3vh;
     transition: color .3s;
   }
   #run.paused .time { color: var(--dim); }
-  #run .bar { width: min(60vw, 720px); height: 2px; background: var(--faint); overflow: hidden; }
-  #run .bar i { display: block; height: 100%; background: var(--fg); transform-origin: left; transform: scaleX(1); }
-  #run .sub { height: 1.6em; margin-top: 2.5vh; font-size: clamp(13px, 1.6vw, 18px); color: var(--dim); }
+  #run .bar { width: min(60vw, 720px); height: 6px; border-radius: 3px; background: var(--faint); overflow: hidden; }
+  #run .bar i { display: block; height: 100%; border-radius: 3px; background: var(--fg); transform-origin: left; transform: scaleX(1); }
+  #run .sub { height: 1.6em; margin-top: 2.5vh; font-size: clamp(13px, 1.6vw, 18px); font-weight: 500; color: var(--dim); }
 
   #toolbar {
     position: fixed; left: 0; right: 0; bottom: 0; padding: 18px 24px 22px;
