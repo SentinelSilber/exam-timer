@@ -26,4 +26,4 @@ The display shows only the loop counter, the countdown, and a thin progress line
 | F | Toggle fullscreen |
 | Esc, twice | Stop and return to setup |
 
-With live adjustment enabled, the toolbar also offers −10 / −5 / +5 / +10 s buttons for the current loop, a “carry to remaining loops” option so a nudge shifts every later loop too, and a field to set all remaining loops to a new interval without stopping the timer.
+With live adjustment enabled, the toolbar also offers −10 / −5 / +5 / +10 s buttons for the current loop, a “Carry Forward” toggle so a nudge shifts every later loop too, and a field to set all remaining loops to a new interval without stopping the timer.
