@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exam Timer</title>
+<style>
+  :root {
+    --bg: #0e0f11; --fg: #ececea; --dim: #868a92; --faint: #26282d;
+    --control: #17191d; --border: #33363c; --danger: #d9696b;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #f8f8f6; --fg: #17181a; --dim: #6c7078; --faint: #dedfdb;
+    --control: #ffffff; --border: #cdcfca; --danger: #b93b3e;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button {
+    cursor: pointer; background: var(--control); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 13px; line-height: 1.2;
+  }
+  button:hover { border-color: var(--dim); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--dim); outline-offset: 1px; }
+  input[type=number], input[type=text], select {
+    background: var(--control); border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; width: 100%; font-variant-numeric: tabular-nums;
+  }
+  input[type=range] { width: 100%; accent-color: var(--fg); margin: 0; }
+  input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--fg); margin: 0; flex: none; }
+  .hidden { display: none !important; }
+
+  /* ---------- setup ---------- */
+  #setup { max-width: 540px; margin: 0 auto; padding: 56px 20px 96px; }
+  #setup h1 { font-size: 20px; font-weight: 600; margin: 0 0 36px; letter-spacing: -0.01em; }
+  fieldset { border: 0; padding: 0; margin: 0 0 32px; min-width: 0; }
+  legend { font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--dim); padding: 0; margin: 0 0 4px; }
+  .row { display: grid; grid-template-columns: 1fr 150px; gap: 16px; align-items: center; padding: 9px 0; }
+  .row.check { grid-template-columns: 16px 1fr; gap: 12px; align-items: start; }
+  .row.check input { margin-top: 3px; }
+  .row.check label { cursor: pointer; }
+  .note { font-size: 13px; color: var(--dim); }
+  .row .note { margin-top: 1px; }
+  .inline { display: flex; gap: 8px; align-items: center; }
+  .inline > :first-child { flex: 1; min-width: 0; }
+  .inline .val { color: var(--dim); font-variant-numeric: tabular-nums; width: 36px; text-align: right; font-size: 13px; flex: none; }
+  .seg { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button { flex: 1; border: 0; border-radius: 0; background: transparent; }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+  #perLoop { padding: 4px 0 0 28px; }
+  #loopGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; margin: 0 0 10px; }
+  .cell { display: flex; align-items: center; gap: 6px; }
+  .cell .n { color: var(--dim); font-size: 12.5px; width: 24px; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
+  .cell input { padding: 6px 8px; }
+  .cell input.set { border-color: var(--fg); }
+  .cell button { padding: 6px 7px; flex: none; color: var(--dim); }
+  .cell button:hover { color: var(--fg); }
+  .actions { margin-top: 8px; text-align: center; }
+  .primary { width: 100%; background: var(--fg); color: var(--bg); border-color: var(--fg); font-weight: 600; font-size: 16px; padding: 14px; }
+  .primary:hover { opacity: .9; border-color: var(--fg); }
+  .link { background: none; border: 0; padding: 0; color: var(--dim); text-decoration: underline; text-underline-offset: 3px; font-size: 13px; }
+  .link:hover { color: var(--fg); }
+  .actions .note { margin-top: 12px; }
+  .actions .link { margin-top: 28px; display: inline-block; }
+
+  /* ---------- run ---------- */
+  #run { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none; }
+  #run:not(.active) { cursor: none; }
+  #run .loop { font-size: clamp(16px, 2.6vw, 30px); color: var(--dim); letter-spacing: .02em; }
+  #run .loop.flash { animation: flash .7s ease-out; }
+  @keyframes flash { 0% { color: var(--fg); } 100% { color: var(--dim); } }
+  #run .time {
+    font-size: clamp(96px, 30vw, 44vh); line-height: 1; font-weight: 300;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.02em; margin: 2vh 0 3vh;
+    transition: color .3s;
+  }
+  #run.paused .time { color: var(--dim); }
+  #run .bar { width: min(60vw, 720px); height: 2px; background: var(--faint); overflow: hidden; }
+  #run .bar i { display: block; height: 100%; background: var(--fg); transform-origin: left; transform: scaleX(1); }
+  #run .sub { height: 1.6em; margin-top: 2.5vh; font-size: clamp(13px, 1.6vw, 18px); color: var(--dim); }
+
+  #toolbar {
+    position: fixed; left: 0; right: 0; bottom: 0; padding: 18px 24px 22px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    opacity: 0; transition: opacity .25s; pointer-events: none; font-size: 13.5px;
+  }
+  #run.active #toolbar, #run.paused #toolbar { opacity: 1; pointer-events: auto; }
+  #toolbar .group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  #toolbar .sep { width: 1px; height: 22px; background: var(--border); margin: 0 6px; }
+  #toolbar button { padding: 6px 12px; }
+  #toolbar input[type=number] { width: 72px; padding: 6px 8px; }
+  #toolbar label { display: flex; gap: 6px; align-items: center; color: var(--dim); cursor: pointer; }
+  #toolbar .hint { color: var(--dim); font-size: 12px; }
+  #toolbar button.arm { border-color: var(--danger); color: var(--danger); }
+  #doneActions { position: fixed; left: 0; right: 0; bottom: 36px; text-align: center; }
+</style>
+</head>
+<body>
+
+<main id="setup">
+  <h1>Exam Timer</h1>
+
+  <fieldset>
+    <legend>Rotation</legend>
+    <div class="row">
+      <label for="loops">Total loops<div class="note">Number of samples or stations</div></label>
+      <input id="loops" type="number" min="1" max="500" step="1" inputmode="numeric">
+    </div>
+    <div class="row">
+      <label for="interval">Interval per loop<div class="note" id="intervalNote"></div></label>
+      <div class="inline"><input id="interval" type="number" min="5" max="3600" step="1" inputmode="numeric"><span class="val">sec</span></div>
+    </div>
+    <div class="row check">
+      <input id="customize" type="checkbox">
+      <label for="customize">Use different intervals for specific loops</label>
+    </div>
+    <div id="perLoop" class="hidden">
+      <div id="loopGrid"></div>
+      <div class="note">Blank loops use the interval above. ↓ copies a value to every later loop. <button type="button" class="link" id="clearOverrides">Clear all</button></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>While running</legend>
+    <div class="row check">
+      <input id="allowAdjust" type="checkbox">
+      <label for="allowAdjust">Allow adjusting time during the timer<div class="note">Nudge the current loop, or change the interval for all remaining loops, without stopping</div></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Sound</legend>
+    <div class="row">
+      <label for="tone">Chime between loops</label>
+      <div class="inline"><select id="tone"></select><button type="button" id="preview" title="Preview chime">▶</button></div>
+    </div>
+    <div class="row">
+      <label for="volume">Volume</label>
+      <div class="inline"><input id="volume" type="range" min="0" max="100" step="1"><span class="val" id="volumeVal"></span></div>
+    </div>
+    <div class="row check">
+      <input id="endTone" type="checkbox">
+      <label for="endTone">Distinct tone when the last loop ends</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Display</legend>
+    <div class="row">
+      <label for="label">Counter label<div class="note">Shown as “Sample 3 of 20”</div></label>
+      <input id="label" type="text" maxlength="24">
+    </div>
+    <div class="row">
+      <label>Theme</label>
+      <div class="seg" id="theme"><button type="button" data-theme="dark" aria-pressed="true">Dark</button><button type="button" data-theme="light" aria-pressed="false">Light</button></div>
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button type="button" class="primary" id="start">Start</button>
+    <div class="note" id="summary"></div>
+    <button type="button" class="link" id="reset">Reset to defaults</button>
+  </div>
+</main>
+
+<section id="run" class="hidden">
+  <div class="loop" id="loopLabel"></div>
+  <div class="time" id="time">0:00</div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="sub" id="sub"></div>
+
+  <div id="toolbar">
+    <div class="group" id="adjust">
+      <button type="button" data-nudge="-10">−10 s</button>
+      <button type="button" data-nudge="-5">−5 s</button>
+      <button type="button" data-nudge="5">+5 s</button>
+      <button type="button" data-nudge="10">+10 s</button>
+      <label><input type="checkbox" id="carry"> carry to remaining loops</label>
+      <span class="sep"></span>
+      <label for="remainingSec">Remaining loops</label>
+      <input id="remainingSec" type="number" min="5" max="3600" step="1" inputmode="numeric">
+      <span class="note">sec</span>
+      <button type="button" id="setRemaining">Set</button>
+    </div>
+    <div class="group">
+      <button type="button" id="pause">Pause</button>
+      <button type="button" id="skip">Next loop</button>
+      <button type="button" id="fullscreen">Fullscreen</button>
+      <button type="button" id="stop">Stop</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div id="doneActions" class="hidden"><button type="button" id="back">Back to setup</button></div>
+</section>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const int = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : d; };
+  const fmt = (s, hours = false) => {
+    s = Math.max(0, Math.round(s));
+    const ss = String(s % 60).padStart(2, '0');
+    if (hours && s >= 3600) return Math.floor(s / 3600) + ':' + String(Math.floor(s % 3600 / 60)).padStart(2, '0') + ':' + ss;
+    return Math.floor(s / 60) + ':' + ss;
+  };
+
+  // ---------- audio ----------
+  let ctx = null, master = null;
+  function audio() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC();
+      master = ctx.createGain();
+      master.connect(ctx.destination);
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    master.gain.value = Math.pow(S.volume / 100, 2);
+    return ctx;
+  }
+  // One decaying tone. Short attack to avoid clicks, exponential release.
+  function note(t, freq, dur, peak, type = 'sine') {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(peak, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+    o.connect(g);
+    g.connect(master);
+    o.start(t);
+    o.stop(t + dur + 0.03);
+  }
+  const TONES = {
+    chime: ['Soft chime',  t => { note(t, 880, 0.9, 0.45); note(t + 0.17, 1318.5, 1.1, 0.4); }],
+    ping:  ['Single ping', t => { note(t, 1046.5, 1.0, 0.5); note(t, 2093, 0.3, 0.1); }],
+    bell:  ['Bell',        t => { note(t, 659.25, 1.6, 0.45); note(t, 1318.5, 1.0, 0.18); note(t, 1975.5, 0.5, 0.07); }],
+    beep:  ['Double beep', t => { note(t, 1000, 0.09, 0.4, 'triangle'); note(t + 0.15, 1000, 0.09, 0.4, 'triangle'); }],
+    block: ['Wood block',  t => { note(t, 820, 0.07, 0.7, 'triangle'); note(t, 1640, 0.03, 0.25); }],
+    none:  ['Silent',      () => {}],
+  };
+  function playTone(key) {
+    if (!audio()) return;
+    (TONES[key] || TONES.chime)[1](ctx.currentTime + 0.02);
+  }
+  function playEnd() {
+    if (!audio()) return;
+    const t = ctx.currentTime + 0.02;
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => note(t + i * 0.13, f, 1.3, 0.4));
+  }
+
+  // ---------- settings ----------
+  const STORAGE = 'exam-timer.v1';
+  const DEFAULTS = {
+    loops: 20, interval: 90, customize: false, overrides: [],
+    allowAdjust: true, volume: 60, tone: 'chime', endTone: true,
+    theme: 'dark', label: 'Sample',
+  };
+  function sanitize(s) {
+    s.loops = clamp(int(s.loops, 20), 1, 500);
+    s.interval = clamp(int(s.interval, 90), 5, 3600);
+    const ov = Array.isArray(s.overrides) ? s.overrides : [];
+    s.overrides = Array.from({ length: s.loops }, (_, i) => {
+      const n = parseInt(ov[i], 10);
+      return Number.isFinite(n) ? clamp(n, 5, 3600) : null;
+    });
+    s.customize = !!s.customize;
+    s.allowAdjust = !!s.allowAdjust;
+    s.endTone = !!s.endTone;
+    s.volume = clamp(int(s.volume, 60), 0, 100);
+    if (!TONES[s.tone]) s.tone = 'chime';
+    s.theme = s.theme === 'light' ? 'light' : 'dark';
+    s.label = String(s.label ?? 'Sample').trim().slice(0, 24) || 'Sample';
+    return s;
+  }
+  let S = (() => {
+    try {
+      const raw = localStorage.getItem(STORAGE);
+      if (raw) return sanitize({ ...DEFAULTS, ...JSON.parse(raw) });
+    } catch (e) { /* ignore */ }
+    return sanitize({ ...DEFAULTS });
+  })();
+  function save() { try { localStorage.setItem(STORAGE, JSON.stringify(S)); } catch (e) { /* ignore */ } }
+  const intervals = () => Array.from({ length: S.loops }, (_, i) =>
+    (S.customize && S.overrides[i] != null) ? S.overrides[i] : S.interval);
+
+  // ---------- setup screen ----------
+  const el = {
+    setup: $('setup'), loops: $('loops'), interval: $('interval'), intervalNote: $('intervalNote'),
+    customize: $('customize'), perLoop: $('perLoop'), grid: $('loopGrid'),
+    allowAdjust: $('allowAdjust'), tone: $('tone'), volume: $('volume'), volumeVal: $('volumeVal'),
+    endTone: $('endTone'), label: $('label'), theme: $('theme'), summary: $('summary'),
+  };
+  for (const [k, [name]] of Object.entries(TONES)) {
+    const o = document.createElement('option');
+    o.value = k; o.textContent = name;
+    el.tone.appendChild(o);
+  }
+
+  function renderSetup() {
+    document.documentElement.dataset.theme = S.theme;
+    el.loops.value = S.loops;
+    el.interval.value = S.interval;
+    el.intervalNote.textContent = fmt(S.interval) + ' per loop';
+    el.customize.checked = S.customize;
+    el.perLoop.classList.toggle('hidden', !S.customize);
+    el.allowAdjust.checked = S.allowAdjust;
+    el.tone.value = S.tone;
+    el.volume.value = S.volume;
+    el.volumeVal.textContent = S.volume + '%';
+    el.endTone.checked = S.endTone;
+    el.label.value = S.label;
+    for (const b of el.theme.children) b.setAttribute('aria-pressed', String(b.dataset.theme === S.theme));
+    const total = intervals().reduce((a, b) => a + b, 0);
+    el.summary.textContent = `${S.loops} ${S.loops === 1 ? 'loop' : 'loops'} · ${fmt(total, true)} total`;
+    renderGrid();
+  }
+  function renderGrid() {
+    if (!S.customize) return;
+    if (el.grid.childElementCount !== S.loops) {
+      el.grid.innerHTML = '';
+      for (let i = 0; i < S.loops; i++) {
+        const c = document.createElement('div');
+        c.className = 'cell';
+        c.innerHTML = `<span class="n">${i + 1}</span>` +
+          `<input type="number" min="5" max="3600" step="1" inputmode="numeric" data-i="${i}" aria-label="Interval for loop ${i + 1}">` +
+          `<button type="button" data-fill="${i}" title="Copy to every later loop">↓</button>`;
+        el.grid.appendChild(c);
+      }
+    }
+    el.grid.querySelectorAll('input').forEach((inp, i) => {
+      const v = S.overrides[i];
+      inp.value = v == null ? '' : v;
+      inp.placeholder = S.interval;
+      inp.classList.toggle('set', v != null);
+    });
+  }
+  function commit() { sanitize(S); save(); renderSetup(); }
+
+  el.loops.addEventListener('change', () => { S.loops = el.loops.value; commit(); });
+  el.interval.addEventListener('change', () => { S.interval = el.interval.value; commit(); });
+  el.customize.addEventListener('change', () => { S.customize = el.customize.checked; commit(); });
+  el.allowAdjust.addEventListener('change', () => { S.allowAdjust = el.allowAdjust.checked; commit(); });
+  el.endTone.addEventListener('change', () => { S.endTone = el.endTone.checked; commit(); });
+  el.label.addEventListener('change', () => { S.label = el.label.value; commit(); });
+  el.tone.addEventListener('change', () => { S.tone = el.tone.value; commit(); playTone(S.tone); });
+  el.volume.addEventListener('input', () => { S.volume = el.volume.value; sanitize(S); el.volumeVal.textContent = S.volume + '%'; });
+  el.volume.addEventListener('change', () => { commit(); playTone(S.tone); });
+  $('preview').addEventListener('click', () => playTone(S.tone));
+  el.theme.addEventListener('click', e => {
+    const b = e.target.closest('button[data-theme]'); if (!b) return;
+    S.theme = b.dataset.theme; commit();
+  });
+  el.grid.addEventListener('change', e => {
+    const i = int(e.target.dataset.i, -1); if (i < 0) return;
+    S.overrides[i] = e.target.value === '' ? null : e.target.value;
+    commit();
+  });
+  el.grid.addEventListener('click', e => {
+    const b = e.target.closest('button[data-fill]'); if (!b) return;
+    const i = int(b.dataset.fill, -1); if (i < 0) return;
+    const v = S.overrides[i] ?? S.interval;
+    for (let j = i; j < S.loops; j++) S.overrides[j] = v;
+    commit();
+  });
+  $('clearOverrides').addEventListener('click', () => { S.overrides = []; commit(); });
+  $('reset').addEventListener('click', () => { S = sanitize({ ...DEFAULTS }); commit(); });
+
+  // ---------- running screen ----------
+  const runEl = $('run'), timeEl = $('time'), loopEl = $('loopLabel'), barEl = $('bar'), subEl = $('sub');
+  const toolbar = $('toolbar'), adjustEl = $('adjust'), remainingInput = $('remainingSec'), carryEl = $('carry');
+  const pauseBtn = $('pause'), stopBtn = $('stop'), setBtn = $('setRemaining'), hintEl = $('hint'), doneEl = $('doneActions');
+  let run = null, ticker = null, hideTimer = null, stopTimer = null, setTimer = null, lock = null;
+
+  function start() {
+    commit();
+    audio(); // unlock audio on the user gesture
+    const list = intervals();
+    run = { list, index: 0, endAt: performance.now() + list[0] * 1000, paused: false, pausedRemaining: 0, finished: false };
+    el.setup.classList.add('hidden');
+    runEl.classList.remove('hidden', 'paused', 'finished');
+    toolbar.classList.remove('hidden');
+    doneEl.classList.add('hidden');
+    adjustEl.classList.toggle('hidden', !S.allowAdjust);
+    carryEl.checked = false;
+    remainingInput.value = list[Math.min(1, list.length - 1)];
+    pauseBtn.textContent = 'Pause';
+    hintEl.textContent = 'Space pause · N next loop' +
+      (S.allowAdjust ? ' · ↑ ↓ ±5 s · Shift ↑ ↓ ±30 s' : '') +
+      ' · F fullscreen · Esc twice to stop';
+    clearInterval(ticker);
+    ticker = setInterval(tick, 50);
+    acquireLock();
+    window.onbeforeunload = () => 'The timer is running.';
+    render();
+    showToolbar();
+  }
+
+  function tick() {
+    if (!run || run.paused || run.finished) return;
+    const now = performance.now();
+    let advanced = false;
+    while (now >= run.endAt) {
+      if (run.index + 1 >= run.list.length) { finish(); return; }
+      run.index++;
+      run.endAt += run.list[run.index] * 1000; // chain from the scheduled end so loops never drift
+      advanced = true;
+    }
+    if (advanced) { playTone(S.tone); flash(); }
+    render();
+  }
+
+  function render() {
+    if (!run || run.finished) return;
+    const n = run.list.length, cur = run.list[run.index];
+    const remaining = run.paused ? run.pausedRemaining : Math.max(0, run.endAt - performance.now());
+    const txt = fmt(Math.ceil(remaining / 1000));
+    if (timeEl.textContent !== txt) timeEl.textContent = txt;
+    loopEl.textContent = `${S.label} ${run.index + 1} of ${n}`;
+    barEl.style.transform = `scaleX(${clamp(remaining / (cur * 1000), 0, 1)})`;
+    let sub = '';
+    if (run.paused) sub = 'Paused';
+    else if (run.index + 1 < n) { const nx = run.list[run.index + 1]; if (nx !== cur) sub = 'Next loop ' + fmt(nx); }
+    else sub = 'Final loop';
+    subEl.textContent = sub;
+  }
+
+  function finish() {
+    run.finished = true;
+    clearInterval(ticker); ticker = null;
+    if (S.endTone) playEnd(); else playTone(S.tone);
+    runEl.classList.add('finished', 'active');
+    runEl.classList.remove('paused');
+    loopEl.textContent = 'Complete';
+    timeEl.textContent = '0:00';
+    barEl.style.transform = 'scaleX(0)';
+    subEl.textContent = `${run.list.length} loops`;
+    toolbar.classList.add('hidden');
+    doneEl.classList.remove('hidden');
+    releaseLock();
+    window.onbeforeunload = null;
+  }
+
+  function togglePause() {
+    if (!run || run.finished) return;
+    const now = performance.now();
+    if (run.paused) { run.endAt = now + run.pausedRemaining; run.paused = false; pauseBtn.textContent = 'Pause'; }
+    else { run.pausedRemaining = Math.max(0, run.endAt - now); run.paused = true; pauseBtn.textContent = 'Resume'; }
+    runEl.classList.toggle('paused', run.paused);
+    render();
+    showToolbar();
+  }
+
+  function skip() {
+    if (!run || run.finished) return;
+    if (run.paused) togglePause();
+    run.endAt = performance.now();
+    tick();
+  }
+
+  // Add or remove seconds from the current loop; optionally shift every remaining loop by the same amount.
+  function nudge(delta) {
+    if (!run || run.finished || !S.allowAdjust) return;
+    const now = performance.now();
+    const remaining = run.paused ? run.pausedRemaining : run.endAt - now;
+    const target = Math.max(1000, remaining + delta * 1000);
+    const applied = target - remaining;
+    if (run.paused) run.pausedRemaining = target; else run.endAt += applied;
+    run.list[run.index] = clamp(run.list[run.index] + Math.round(applied / 1000), 1, 3600);
+    if (carryEl.checked) {
+      for (let i = run.index + 1; i < run.list.length; i++) run.list[i] = clamp(run.list[i] + delta, 5, 3600);
+    }
+    render();
+    showToolbar();
+  }
+
+  // Set every loop after the current one to a new interval.
+  function setRemaining() {
+    if (!run || run.finished || !S.allowAdjust) return;
+    const v = int(remainingInput.value, NaN);
+    if (!Number.isFinite(v)) return;
+    const sec = clamp(v, 5, 3600);
+    for (let i = run.index + 1; i < run.list.length; i++) run.list[i] = sec;
+    remainingInput.value = sec;
+    remainingInput.blur();
+    setBtn.textContent = 'Set ✓';
+    clearTimeout(setTimer);
+    setTimer = setTimeout(() => { setBtn.textContent = 'Set'; }, 1500);
+    render();
+    showToolbar();
+  }
+
+  function requestStop() {
+    if (!run) return;
+    if (run.finished || stopTimer) { backToSetup(); return; }
+    stopBtn.textContent = 'Press again to stop';
+    stopBtn.classList.add('arm');
+    stopTimer = setTimeout(disarm, 3000);
+    showToolbar();
+  }
+  function disarm() {
+    clearTimeout(stopTimer); stopTimer = null;
+    stopBtn.textContent = 'Stop';
+    stopBtn.classList.remove('arm');
+  }
+  function backToSetup() {
+    disarm();
+    clearInterval(ticker); ticker = null;
+    run = null;
+    releaseLock();
+    window.onbeforeunload = null;
+    runEl.classList.add('hidden');
+    runEl.classList.remove('paused', 'finished', 'active');
+    el.setup.classList.remove('hidden');
+  }
+
+  function showToolbar() {
+    if (!run) return;
+    runEl.classList.add('active');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      if (run && !run.paused && !run.finished && !toolbar.contains(document.activeElement)) runEl.classList.remove('active');
+    }, 2500);
+  }
+  function flash() {
+    loopEl.classList.remove('flash');
+    void loopEl.offsetWidth;
+    loopEl.classList.add('flash');
+  }
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else document.documentElement.requestFullscreen?.();
+  }
+  async function acquireLock() {
+    try { lock = await navigator.wakeLock?.request('screen'); } catch (e) { lock = null; }
+  }
+  function releaseLock() {
+    try { lock?.release(); } catch (e) { /* ignore */ }
+    lock = null;
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && run && !run.finished) acquireLock();
+  });
+
+  runEl.addEventListener('mousemove', showToolbar);
+  runEl.addEventListener('pointerdown', showToolbar);
+  toolbar.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.nudge) nudge(int(b.dataset.nudge, 0));
+    else if (b === pauseBtn) togglePause();
+    else if (b.id === 'skip') skip();
+    else if (b.id === 'fullscreen') toggleFullscreen();
+    else if (b === stopBtn) requestStop();
+    else if (b === setBtn) setRemaining();
+    b.blur(); // so Space keeps meaning "pause" rather than re-clicking this button
+  });
+  $('back').addEventListener('click', backToSetup);
+  $('start').addEventListener('click', start);
+
+  document.addEventListener('keydown', e => {
+    if (!run) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) {
+      if (e.key === 'Escape') t.blur();
+      if (e.key === 'Enter' && t === remainingInput) setRemaining();
+      return;
+    }
+    if (t && t.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key) {
+      case ' ': e.preventDefault(); togglePause(); break;
+      case 'n': case 'N': skip(); break;
+      case 'f': case 'F': toggleFullscreen(); break;
+      case 'ArrowUp': case 'ArrowRight': e.preventDefault(); nudge(e.shiftKey ? 30 : 5); break;
+      case 'ArrowDown': case 'ArrowLeft': e.preventDefault(); nudge(e.shiftKey ? -30 : -5); break;
+      case 'Escape': requestStop(); break;
+      default: return;
+    }
+    showToolbar();
+  });
+
+  renderSetup();
+})();
+</script>
+</body>
+</html>
