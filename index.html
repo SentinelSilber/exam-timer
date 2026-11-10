@@ -55,8 +55,8 @@
   .seg button { flex: 1; border: 0; border-radius: 0; background: transparent; }
   .seg button + button { border-left: 1px solid var(--border); }
   .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
-  #perLoop { padding: 4px 0 0 28px; }
-  #loopGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; margin: 0 0 10px; }
+  #perRound { padding: 4px 0 0 28px; }
+  #roundGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; margin: 0 0 10px; }
   .cell { display: flex; align-items: center; gap: 6px; }
   .cell .n { color: var(--dim); font-size: 12.5px; width: 24px; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
   .cell input { padding: 6px 8px; }
@@ -74,8 +74,8 @@
   /* ---------- run ---------- */
   #run { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; user-select: none; }
   #run:not(.active) { cursor: none; }
-  #run .loop { font-size: clamp(16px, 2.6vw, 30px); font-weight: 500; color: var(--dim); letter-spacing: .02em; }
-  #run .loop.flash { animation: flash .7s ease-out; }
+  #run .round { font-size: clamp(16px, 2.6vw, 30px); font-weight: 500; color: var(--dim); letter-spacing: .02em; }
+  #run .round.flash { animation: flash .7s ease-out; }
   @keyframes flash { 0% { color: var(--fg); } 100% { color: var(--dim); } }
   #run .time {
     font-size: clamp(96px, 30vw, 44vh); line-height: 1; font-weight: 500;
@@ -112,20 +112,20 @@
   <fieldset>
     <legend>Rotation</legend>
     <div class="row">
-      <label for="loops">Total Loops<div class="note">Number of samples or stations</div></label>
-      <input id="loops" type="number" min="1" max="500" step="1" inputmode="numeric">
+      <label for="rounds">Total Rounds<div class="note">Number of samples or stations</div></label>
+      <input id="rounds" type="number" min="1" max="500" step="1" inputmode="numeric">
     </div>
     <div class="row">
-      <label for="interval">Interval per Loop<div class="note" id="intervalNote"></div></label>
+      <label for="interval">Interval per Round<div class="note" id="intervalNote"></div></label>
       <div class="inline"><input id="interval" type="number" min="5" max="3600" step="1" inputmode="numeric"><span class="val">sec</span></div>
     </div>
     <div class="row check">
       <input id="customize" type="checkbox">
-      <label for="customize">Use different intervals for specific loops</label>
+      <label for="customize">Use different intervals for specific rounds</label>
     </div>
-    <div id="perLoop" class="hidden">
-      <div id="loopGrid"></div>
-      <div class="note">Blank loops use the interval above. ↓ copies a value to every later loop. <button type="button" class="link" id="clearOverrides" title="Remove every per-loop override">Clear All</button></div>
+    <div id="perRound" class="hidden">
+      <div id="roundGrid"></div>
+      <div class="note">Blank rounds use the interval above. ↓ copies a value to every later round. <button type="button" class="link" id="clearOverrides" title="Remove every per-round override">Clear All</button></div>
     </div>
   </fieldset>
 
@@ -133,14 +133,14 @@
     <legend>While running</legend>
     <div class="row check">
       <input id="allowAdjust" type="checkbox">
-      <label for="allowAdjust">Allow adjusting time during the timer<div class="note">Nudge the current loop, or change the interval for all remaining loops, without stopping</div></label>
+      <label for="allowAdjust">Allow adjusting time during the timer<div class="note">Nudge the current round, or change the interval for all remaining rounds, without stopping</div></label>
     </div>
   </fieldset>
 
   <fieldset>
     <legend>Sound</legend>
     <div class="row">
-      <label for="tone">Chime Between Loops</label>
+      <label for="tone">Chime Between Rounds</label>
       <div class="inline"><select id="tone"></select><button type="button" id="preview" title="Preview the chime at the current volume">▶</button></div>
     </div>
     <div class="row">
@@ -149,7 +149,7 @@
     </div>
     <div class="row check">
       <input id="endTone" type="checkbox">
-      <label for="endTone">Distinct tone when the last loop ends</label>
+      <label for="endTone">Distinct tone when the last round ends</label>
     </div>
   </fieldset>
 
@@ -166,34 +166,35 @@
   </fieldset>
 
   <div class="actions">
-    <button type="button" class="primary" id="start" title="Start the rotation with these settings">Start</button>
+    <button type="button" class="primary" id="start" title="Open the timer. It waits in Ready until you press Start.">Continue</button>
     <div class="note" id="summary"></div>
     <button type="button" class="link" id="reset" title="Restore every setting to its default">Reset to Defaults</button>
   </div>
 </main>
 
 <section id="run" class="hidden">
-  <div class="loop" id="loopLabel"></div>
+  <div class="round" id="roundLabel"></div>
   <div class="time" id="time">0:00</div>
   <div class="bar"><i id="bar"></i></div>
   <div class="sub" id="sub"></div>
 
   <div id="toolbar">
     <div class="group" id="adjust">
-      <button type="button" data-nudge="-10" title="Take 10 seconds off the current loop">−10 s</button>
-      <button type="button" data-nudge="-5" title="Take 5 seconds off the current loop (↓)">−5 s</button>
-      <button type="button" data-nudge="5" title="Add 5 seconds to the current loop (↑)">+5 s</button>
-      <button type="button" data-nudge="10" title="Add 10 seconds to the current loop">+10 s</button>
-      <button type="button" class="toggle" id="carry" aria-pressed="false" title="When on, the ± buttons also shift every remaining loop by the same amount">Carry Forward</button>
+      <button type="button" data-nudge="-10" title="Take 10 seconds off the current round">−10 s</button>
+      <button type="button" data-nudge="-5" title="Take 5 seconds off the current round (↓)">−5 s</button>
+      <button type="button" data-nudge="5" title="Add 5 seconds to the current round (↑)">+5 s</button>
+      <button type="button" data-nudge="10" title="Add 10 seconds to the current round">+10 s</button>
+      <button type="button" class="toggle" id="carry" aria-pressed="false" title="When on, the ± buttons also shift every remaining round by the same amount">Carry Forward</button>
       <span class="sep"></span>
-      <label for="remainingSec" title="New interval for every loop after this one">Remaining Loops</label>
-      <input id="remainingSec" type="number" min="5" max="3600" step="1" inputmode="numeric" title="New interval for every loop after this one, in seconds">
+      <label for="remainingSec" title="New interval for every round after this one">Remaining Rounds</label>
+      <input id="remainingSec" type="number" min="5" max="3600" step="1" inputmode="numeric" title="New interval for every round after this one, in seconds">
       <span class="note">sec</span>
-      <button type="button" id="setRemaining" title="Apply this interval to every remaining loop (Enter)">Set</button>
+      <button type="button" id="setRemaining" title="Apply this interval to every remaining round (Enter)">Set</button>
     </div>
     <div class="group">
-      <button type="button" id="pause" title="Pause or resume (Space)">Pause</button>
-      <button type="button" id="skip" title="End this loop now and start the next (N)">Next Loop</button>
+      <button type="button" id="pause" title="Start, pause or resume (Space)">Start</button>
+      <button type="button" id="skip" title="End this round now and start the next (N)">Next Round</button>
+      <button type="button" id="resetRound" title="Put this round back to its full time and wait for Start (R)">Reset Round</button>
       <button type="button" id="fullscreen" title="Toggle fullscreen (F)">Fullscreen</button>
       <button type="button" id="stop" title="Stop and return to setup (press twice, or Esc twice)">Stop</button>
     </div>
@@ -264,15 +265,15 @@
   // ---------- settings ----------
   const STORAGE = 'exam-timer.v1';
   const DEFAULTS = {
-    loops: 20, interval: 90, customize: false, overrides: [],
+    rounds: 20, interval: 90, customize: false, overrides: [],
     allowAdjust: true, volume: 60, tone: 'chime', endTone: true,
     theme: 'dark', label: 'Sample',
   };
   function sanitize(s) {
-    s.loops = clamp(int(s.loops, 20), 1, 500);
+    s.rounds = clamp(int(s.rounds, 20), 1, 500);
     s.interval = clamp(int(s.interval, 90), 5, 3600);
     const ov = Array.isArray(s.overrides) ? s.overrides : [];
-    s.overrides = Array.from({ length: s.loops }, (_, i) => {
+    s.overrides = Array.from({ length: s.rounds }, (_, i) => {
       const n = parseInt(ov[i], 10);
       return Number.isFinite(n) ? clamp(n, 5, 3600) : null;
     });
@@ -288,18 +289,23 @@
   let S = (() => {
     try {
       const raw = localStorage.getItem(STORAGE);
-      if (raw) return sanitize({ ...DEFAULTS, ...JSON.parse(raw) });
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p.rounds == null && p.loops != null) p.rounds = p.loops; // settings saved before "loops" became "rounds"
+        delete p.loops;
+        return sanitize({ ...DEFAULTS, ...p });
+      }
     } catch (e) { /* ignore */ }
     return sanitize({ ...DEFAULTS });
   })();
   function save() { try { localStorage.setItem(STORAGE, JSON.stringify(S)); } catch (e) { /* ignore */ } }
-  const intervals = () => Array.from({ length: S.loops }, (_, i) =>
+  const intervals = () => Array.from({ length: S.rounds }, (_, i) =>
     (S.customize && S.overrides[i] != null) ? S.overrides[i] : S.interval);
 
   // ---------- setup screen ----------
   const el = {
-    setup: $('setup'), loops: $('loops'), interval: $('interval'), intervalNote: $('intervalNote'),
-    customize: $('customize'), perLoop: $('perLoop'), grid: $('loopGrid'),
+    setup: $('setup'), rounds: $('rounds'), interval: $('interval'), intervalNote: $('intervalNote'),
+    customize: $('customize'), perRound: $('perRound'), grid: $('roundGrid'),
     allowAdjust: $('allowAdjust'), tone: $('tone'), volume: $('volume'), volumeVal: $('volumeVal'),
     endTone: $('endTone'), label: $('label'), theme: $('theme'), summary: $('summary'),
   };
@@ -311,11 +317,11 @@
 
   function renderSetup() {
     document.documentElement.dataset.theme = S.theme;
-    el.loops.value = S.loops;
+    el.rounds.value = S.rounds;
     el.interval.value = S.interval;
-    el.intervalNote.textContent = fmt(S.interval) + ' per loop';
+    el.intervalNote.textContent = fmt(S.interval) + ' per round';
     el.customize.checked = S.customize;
-    el.perLoop.classList.toggle('hidden', !S.customize);
+    el.perRound.classList.toggle('hidden', !S.customize);
     el.allowAdjust.checked = S.allowAdjust;
     el.tone.value = S.tone;
     el.volume.value = S.volume;
@@ -324,19 +330,19 @@
     el.label.value = S.label;
     for (const b of el.theme.children) b.setAttribute('aria-pressed', String(b.dataset.theme === S.theme));
     const total = intervals().reduce((a, b) => a + b, 0);
-    el.summary.textContent = `${S.loops} ${S.loops === 1 ? 'loop' : 'loops'} · ${fmt(total, true)} total`;
+    el.summary.textContent = `${S.rounds} ${S.rounds === 1 ? 'round' : 'rounds'} · ${fmt(total, true)} total`;
     renderGrid();
   }
   function renderGrid() {
     if (!S.customize) return;
-    if (el.grid.childElementCount !== S.loops) {
+    if (el.grid.childElementCount !== S.rounds) {
       el.grid.innerHTML = '';
-      for (let i = 0; i < S.loops; i++) {
+      for (let i = 0; i < S.rounds; i++) {
         const c = document.createElement('div');
         c.className = 'cell';
         c.innerHTML = `<span class="n">${i + 1}</span>` +
-          `<input type="number" min="5" max="3600" step="1" inputmode="numeric" data-i="${i}" aria-label="Interval for loop ${i + 1}">` +
-          `<button type="button" data-fill="${i}" title="Copy to every later loop">↓</button>`;
+          `<input type="number" min="5" max="3600" step="1" inputmode="numeric" data-i="${i}" aria-label="Interval for round ${i + 1}">` +
+          `<button type="button" data-fill="${i}" title="Copy to every later round">↓</button>`;
         el.grid.appendChild(c);
       }
     }
@@ -349,7 +355,7 @@
   }
   function commit() { sanitize(S); save(); renderSetup(); }
 
-  el.loops.addEventListener('change', () => { S.loops = el.loops.value; commit(); });
+  el.rounds.addEventListener('change', () => { S.rounds = el.rounds.value; commit(); });
   el.interval.addEventListener('change', () => { S.interval = el.interval.value; commit(); });
   el.customize.addEventListener('change', () => { S.customize = el.customize.checked; commit(); });
   el.allowAdjust.addEventListener('change', () => { S.allowAdjust = el.allowAdjust.checked; commit(); });
@@ -372,38 +378,40 @@
     const b = e.target.closest('button[data-fill]'); if (!b) return;
     const i = int(b.dataset.fill, -1); if (i < 0) return;
     const v = S.overrides[i] ?? S.interval;
-    for (let j = i; j < S.loops; j++) S.overrides[j] = v;
+    for (let j = i; j < S.rounds; j++) S.overrides[j] = v;
     commit();
   });
   $('clearOverrides').addEventListener('click', () => { S.overrides = []; commit(); });
   $('reset').addEventListener('click', () => { S = sanitize({ ...DEFAULTS }); commit(); });
 
   // ---------- running screen ----------
-  const runEl = $('run'), timeEl = $('time'), loopEl = $('loopLabel'), barEl = $('bar'), subEl = $('sub');
+  const runEl = $('run'), timeEl = $('time'), roundEl = $('roundLabel'), barEl = $('bar'), subEl = $('sub');
   const toolbar = $('toolbar'), adjustEl = $('adjust'), remainingInput = $('remainingSec'), carryEl = $('carry');
   const pauseBtn = $('pause'), stopBtn = $('stop'), setBtn = $('setRemaining'), hintEl = $('hint'), doneEl = $('doneActions');
   let run = null, ticker = null, hideTimer = null, stopTimer = null, setTimer = null, lock = null;
 
-  function start() {
+  function openTimer() {
     commit();
     audio(); // unlock audio on the user gesture
     const list = intervals();
-    run = { list, index: 0, endAt: performance.now() + list[0] * 1000, paused: false, pausedRemaining: 0, finished: false };
+    // Opens in Ready: round 1 is shown at full time and nothing counts down until Start (Space).
+    // `extra` is the net seconds nudged into the current round, kept apart from the planned list.
+    run = { list, index: 0, extra: 0, endAt: 0, paused: true, started: false, pausedRemaining: list[0] * 1000, finished: false };
     el.setup.classList.add('hidden');
-    runEl.classList.remove('hidden', 'paused', 'finished');
+    runEl.classList.remove('hidden', 'finished');
+    runEl.classList.add('paused');
     toolbar.classList.remove('hidden');
     doneEl.classList.add('hidden');
     adjustEl.classList.toggle('hidden', !S.allowAdjust);
     carryEl.setAttribute('aria-pressed', 'false');
     remainingInput.value = list[Math.min(1, list.length - 1)];
-    pauseBtn.textContent = 'Pause';
-    hintEl.textContent = 'Space Pause · N Next Loop' +
+    updatePauseBtn();
+    hintEl.textContent = 'Space Start / Pause · N Next Round · R Reset Round' +
       (S.allowAdjust ? ' · ↑ ↓ ±5 s · Shift ↑ ↓ ±30 s' : '') +
       ' · F Fullscreen · Esc Twice to Stop';
     clearInterval(ticker);
     ticker = setInterval(tick, 50);
     acquireLock();
-    window.onbeforeunload = () => 'The timer is running.';
     render();
     showToolbar();
   }
@@ -415,7 +423,8 @@
     while (now >= run.endAt) {
       if (run.index + 1 >= run.list.length) { finish(); return; }
       run.index++;
-      run.endAt += run.list[run.index] * 1000; // chain from the scheduled end so loops never drift
+      run.extra = 0;
+      run.endAt += run.list[run.index] * 1000; // chain from the scheduled end so rounds never drift
       advanced = true;
     }
     if (advanced) { playTone(S.tone); flash(); }
@@ -428,12 +437,13 @@
     const remaining = run.paused ? run.pausedRemaining : Math.max(0, run.endAt - performance.now());
     const txt = fmt(Math.ceil(remaining / 1000));
     if (timeEl.textContent !== txt) timeEl.textContent = txt;
-    loopEl.textContent = `${S.label} ${run.index + 1} of ${n}`;
-    barEl.style.transform = `scaleX(${clamp(remaining / (cur * 1000), 0, 1)})`;
+    roundEl.textContent = `${S.label} ${run.index + 1} of ${n}`;
+    barEl.style.transform = `scaleX(${clamp(remaining / Math.max(1000, cur * 1000 + run.extra), 0, 1)})`;
     let sub = '';
-    if (run.paused) sub = 'Paused';
-    else if (run.index + 1 < n) { const nx = run.list[run.index + 1]; if (nx !== cur) sub = 'Next Loop ' + fmt(nx); }
-    else sub = 'Final Loop';
+    if (!run.started) sub = 'Ready';
+    else if (run.paused) sub = 'Paused';
+    else if (run.index + 1 < n) { const nx = run.list[run.index + 1]; if (nx !== cur) sub = 'Next Round ' + fmt(nx); }
+    else sub = 'Final Round';
     subEl.textContent = sub;
   }
 
@@ -443,10 +453,10 @@
     if (S.endTone) playEnd(); else playTone(S.tone);
     runEl.classList.add('finished', 'active');
     runEl.classList.remove('paused');
-    loopEl.textContent = 'Complete';
+    roundEl.textContent = 'Complete';
     timeEl.textContent = '0:00';
     barEl.style.transform = 'scaleX(0)';
-    subEl.textContent = `${run.list.length} loops`;
+    subEl.textContent = `${run.list.length} rounds`;
     toolbar.classList.add('hidden');
     doneEl.classList.remove('hidden');
     releaseLock();
@@ -456,21 +466,55 @@
   function togglePause() {
     if (!run || run.finished) return;
     const now = performance.now();
-    if (run.paused) { run.endAt = now + run.pausedRemaining; run.paused = false; pauseBtn.textContent = 'Pause'; }
-    else { run.pausedRemaining = Math.max(0, run.endAt - now); run.paused = true; pauseBtn.textContent = 'Resume'; }
+    if (run.paused) {
+      run.endAt = now + run.pausedRemaining;
+      run.paused = false;
+      run.started = true;
+      window.onbeforeunload = () => 'The timer is running.';
+    } else {
+      run.pausedRemaining = Math.max(0, run.endAt - now);
+      run.paused = true;
+    }
     runEl.classList.toggle('paused', run.paused);
+    updatePauseBtn();
+    render();
+    showToolbar();
+  }
+  function updatePauseBtn() {
+    pauseBtn.textContent = !run.started ? 'Start' : run.paused ? 'Resume' : 'Pause';
+  }
+
+  // Put the current round back to its full time and wait for Start again. Later rounds are untouched.
+  function resetRound() {
+    if (!run || run.finished) return;
+    run.extra = 0;
+    run.paused = true;
+    run.started = false;
+    run.pausedRemaining = run.list[run.index] * 1000;
+    runEl.classList.add('paused');
+    updatePauseBtn();
     render();
     showToolbar();
   }
 
   function skip() {
     if (!run || run.finished) return;
+    if (!run.started) { // while Ready, move to the next round without starting it
+      if (run.index + 1 < run.list.length) {
+        run.index++;
+        run.extra = 0;
+        run.pausedRemaining = run.list[run.index] * 1000;
+        render();
+        showToolbar();
+      }
+      return;
+    }
     if (run.paused) togglePause();
     run.endAt = performance.now();
     tick();
   }
 
-  // Add or remove seconds from the current loop; optionally shift every remaining loop by the same amount.
+  // Add or remove seconds from the current round; optionally shift every remaining round by the same amount.
   function nudge(delta) {
     if (!run || run.finished || !S.allowAdjust) return;
     const now = performance.now();
@@ -478,7 +522,7 @@
     const target = Math.max(1000, remaining + delta * 1000);
     const applied = target - remaining;
     if (run.paused) run.pausedRemaining = target; else run.endAt += applied;
-    run.list[run.index] = clamp(run.list[run.index] + Math.round(applied / 1000), 1, 3600);
+    run.extra += applied; // the bar's full length follows the nudge; the planned interval stays put
     if (carryEl.getAttribute('aria-pressed') === 'true') {
       for (let i = run.index + 1; i < run.list.length; i++) run.list[i] = clamp(run.list[i] + delta, 5, 3600);
     }
@@ -486,7 +530,7 @@
     showToolbar();
   }
 
-  // Set every loop after the current one to a new interval.
+  // Set every round after the current one to a new interval.
   function setRemaining() {
     if (!run || run.finished || !S.allowAdjust) return;
     const v = int(remainingInput.value, NaN);
@@ -535,9 +579,9 @@
     }, 2500);
   }
   function flash() {
-    loopEl.classList.remove('flash');
-    void loopEl.offsetWidth;
-    loopEl.classList.add('flash');
+    roundEl.classList.remove('flash');
+    void roundEl.offsetWidth;
+    roundEl.classList.add('flash');
   }
   function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen?.();
@@ -563,6 +607,7 @@
     if (b.dataset.nudge) nudge(int(b.dataset.nudge, 0));
     else if (b === pauseBtn) togglePause();
     else if (b.id === 'skip') skip();
+    else if (b.id === 'resetRound') resetRound();
     else if (b.id === 'fullscreen') toggleFullscreen();
     else if (b === stopBtn) requestStop();
     else if (b === setBtn) setRemaining();
@@ -570,7 +615,7 @@
     b.blur(); // so Space keeps meaning "pause" rather than re-clicking this button
   });
   $('back').addEventListener('click', backToSetup);
-  $('start').addEventListener('click', start);
+  $('start').addEventListener('click', openTimer);
 
   document.addEventListener('keydown', e => {
     if (!run) return;
@@ -584,6 +629,7 @@
     switch (e.key) {
       case ' ': e.preventDefault(); togglePause(); break;
       case 'n': case 'N': skip(); break;
+      case 'r': case 'R': resetRound(); break;
       case 'f': case 'F': toggleFullscreen(); break;
       case 'ArrowUp': case 'ArrowRight': e.preventDefault(); nudge(e.shiftKey ? 30 : 5); break;
       case 'ArrowDown': case 'ArrowLeft': e.preventDefault(); nudge(e.shiftKey ? -30 : -5); break;
