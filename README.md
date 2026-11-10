@@ -16,7 +16,7 @@ Settings are remembered in the browser between sessions.
 
 ## While running
 
-Continue opens the timer with round 1 at its full time; nothing counts down until you press Start or Space. The display shows only the round counter, the countdown, and a progress line. Start, Reset and Stop sit directly under the countdown; Next Round, Fullscreen, a volume slider and the time adjustments are in a toolbar at the bottom. While paused, the digits pulse and a Paused badge is shown. All controls fade in when the mouse moves and fade out after a few seconds while the timer is counting. The screen is kept awake while the timer runs.
+Continue opens the timer with round 1 at its full time; nothing counts down until you press Start or Space. The display shows only the round counter, the countdown, and a progress line. Start, Reset and Stop sit directly under the countdown; Next Round, Fullscreen, a volume slider and the time adjustments are in a toolbar at the bottom. While paused, the digits pulse and a Paused badge is shown. All controls fade in when the mouse moves and fade out after a few seconds while the timer is counting. On a small or heavily zoomed display (for example a projector), the controls compact and the whole countdown scales down so nothing overlaps. The screen is kept awake while the timer runs.
 
 | Key | Action |
 | --- | --- |
