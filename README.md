@@ -16,7 +16,7 @@ Settings are remembered in the browser between sessions.
 
 ## While running
 
-Continue opens the timer in a Ready state: round 1 is shown at its full time and nothing counts down until you press Start or Space. The display shows only the round counter, the countdown, and a progress line. Controls fade in when the mouse moves and fade out after a few seconds. The screen is kept awake while the timer runs.
+Continue opens the timer in a Ready state: round 1 is shown at its full time and nothing counts down until you press Start or Space. The display shows only the round counter, the countdown, and a progress line. Start, Reset and Stop sit directly under the countdown; Next Round, Fullscreen and the time adjustments are in a toolbar at the bottom. All controls fade in when the mouse moves and fade out after a few seconds while the timer is counting. The screen is kept awake while the timer runs.
 
 | Key | Action |
 | --- | --- |
